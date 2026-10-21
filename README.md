@@ -1,2 +1,41 @@
-# ai-agent-projects
-AI Agent / LLM application engineering portfolio (desensitized)
+# AI Agent 工程实践集
+
+> 2026 年在杭州某 AI 公司实习 6 个月，独立负责三个生产项目的研发与上线。
+> 本仓库整理其技术方案、架构设计与关键实现（**已脱敏**，不含客户数据与商业代码）。
+
+---
+
+## 项目一览
+
+| 项目 | 核心技术 | 关键指标 |
+| --- | --- | --- |
+| **智能销售 Agent** | LangGraph 多智能体 · RAG 混合检索（向量 + BM25）· 两级记忆 | 置信度 0.9 阈值路由；生产环境供一线销售使用 |
+| **通话转写系统** | faster-whisper INT8 量化 · VAD · 多策略断句 · 模型常驻内存 | 内存占用 −50%；单通录音处理约 30 秒 |
+| **号码解码引擎** | 16 进程并行穷举 · 哈希集合查表 · 流式 XML 解析 | 24 万条记录 100% 还原；单遍处理 500MB+ |
+
+---
+
+## 技术栈
+
+`Python` · `LangGraph` · `RAG (Vector + BM25)` · `FastAPI` · `SSE` · `Docker` · `Linux` · `faster-whisper` · `ffmpeg`
+
+---
+
+## 架构
+
+三张架构图与设计取舍见 **[ARCHITECTURE.md](./ARCHITECTURE.md)**
+
+---
+
+## 目录（建设中）
+
+- `01-sales-agent/` — 多智能体销售系统（LangGraph 编排 + RAG + 两级记忆）
+- `02-asr-system/` — 通话语音转写（faster-whisper INT8 + VAD + 多策略断句）
+- `03-decoder/` — 高性能数据还原工具（并行穷举 + 流式解析）
+
+---
+
+## 说明
+
+- 所有内容已脱敏：**无客户名称、无真实数据、无商业代码**
+- 仅用于技术交流与求职展示
