@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# 虚拟环境
+.venv/
+venv/
+env/
+ENV/
+
+# 敏感信息（★ 绝不上传）
+.env
+.env.*
+*.pem
+*.key
+secrets.json
+
+# 模型与数据（大文件不入库）
+models/
+*.onnx
+*.pt
+*.bin
+*.safetensors
+data/raw/
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 日志
+*.log
+logs/
