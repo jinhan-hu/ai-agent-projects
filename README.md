@@ -32,6 +32,7 @@
 - ★ [01-sales-agent/](./01-sales-agent/) — 多智能体销售系统（LangGraph 编排 + RAG + 两级记忆）
 - ★ [02-asr-system/](./02-asr-system/) — 通话语音转写（faster-whisper INT8 + VAD + 多策略断句）
 - ★ [03-decoder/](./03-decoder/) — 高性能数据还原工具（并行穷举 + 流式解析）
+- ★ [04-agent-harness/](./04-agent-harness/) — 从零实现的 Agent 执行框架（工具注册 / Loop / 沙箱 / 记忆 / 重试 / 追踪 / 评测）
 
 ---
 
