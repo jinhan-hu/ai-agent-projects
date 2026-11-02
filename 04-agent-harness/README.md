@@ -7,11 +7,18 @@
 RAG 解决"模型不知道"的问题，Agent 要解决"模型能不能动手"。
 本项目把 Agent 的七个核心环节拆开实现，看清每一层在解决什么、代价是什么。
 
-## 七个模块
+## 架构
+
+![架构](docs/architecture.png)
+
+**依赖方向：上层 → 下层。** `types.py` 被所有模块依赖；`loop.py` 是唯一调度中枢。
+
+## 模块清单
 
 | 模块 | 职责 | 状态 |
-| --- | --- | --- |
-| `registry` | 工具注册与发现：统一 schema、装饰器注册、按名查找 | 🚧 |
+| --- | --- | :---: |
+| `registry` | 工具注册与发现：统一 schema、装饰器注册、按名查找 | ✅ |
+| `mock_llm` | 假 LLM 客户端：让 loop 可以离线测试 | ✅ |
 | `loop` | Agent 主循环：思考 → 调用 → 观察 → 收敛 | 🚧 |
 | `sandbox` | 工具执行隔离：超时、异常隔离、输出截断 | 🚧 |
 | `memory` | 会话记忆：滑动窗口 + 摘要压缩 | 🚧 |
@@ -43,35 +50,51 @@ RAG 解决"模型不知道"的问题，Agent 要解决"模型能不能动手"。
 - **零依赖**：clone 即跑，只用标准库
 - **可替换**：LLM 客户端抽象成接口，可接任意模型（OpenAI / DeepSeek / 本地）
 - **可观测**：每次执行都有完整 trace，可回放定位问题
+- **可测试**：`MockLLM` 让全流程无需 API key 即可跑单测
 
 ## 快速开始
 
 ```bash
 git clone https://github.com/jinhan-hu/ai-agent-projects
 cd ai-agent-projects/04-agent-harness
-python -m tests.test_registry      # 运行第一个测试
+
+python tests/test_registry.py     # 12 个测试
+python tests/test_mock_llm.py     # 5 个测试
+python examples/demo.py           # 注册两个工具并打印 schema
 ```
+
+**当前测试状态：17 / 17 通过。**
 
 ## 目录结构
 
 ```
 04-agent-harness/
+├── docs/                 架构图 / 流程图
 ├── harness/
-│   ├── types.py      # 核心数据结构
-│   ├── registry.py   # 工具注册（已实现）
-│   ├── loop.py       # Agent 主循环
-│   ├── sandbox.py    # 沙箱执行
-│   ├── memory.py     # 记忆管理
-│   ├── retry.py      # 重试与兜底
-│   ├── tracing.py    # 调用追踪
-│   └── eval.py       # 评测
-├── tools/            # 示例工具
-├── tests/            # 单元测试
-└── examples/         # 可运行示例
+│   ├── types.py          核心数据结构
+│   ├── registry.py       工具注册（已完成 · 12 测试）
+│   ├── mock_llm.py       假 LLM（已完成 · 5 测试）
+│   ├── loop.py           Agent 主循环
+│   ├── sandbox.py        沙箱执行
+│   ├── memory.py         记忆管理
+│   ├── retry.py          重试与兜底
+│   ├── tracing.py        调用追踪
+│   └── eval.py           评测
+├── tools/                示例工具
+├── tests/                单元测试
+└── examples/             可运行示例
 ```
 
-## 开发计划
+## 开发进度
 
-2026-11 阅读周集中开发，逐日推进七个模块。
+| 日期 | 任务 | 状态 |
+| --- | --- | :---: |
+| 11-02 | 架构定稿 + `types` 补 `tool_calls` + `MockLLM` + 测试 5→12 | ✅ |
+| 11-03 | `loop.py` 主循环（用 MockLLM 验证） | ⬜ |
+| 11-04 | `sandbox.py` | ⬜ |
+| 11-05 | `memory.py` | ⬜ |
+| 11-06 | `retry.py` | ⬜ |
+| 11-07 | `tracing.py` + `eval.py` | ⬜ |
+| 11-08 | 串联 + 接真实 API + 1 分钟 demo | ⬜ |
 
-> 建设中。
+> 建设中，2026-11 阅读周集中开发。
