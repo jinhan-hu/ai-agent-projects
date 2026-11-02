@@ -1,4 +1,4 @@
-"""工具注册中心的测试 —— 项目里第一个能跑通的测试。"""
+"""工具注册中心的测试（12 个）。"""
 
 import sys
 import os
@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from harness.registry import ToolRegistry  # noqa: E402
 
 
+# ---------- 基础功能 ----------
 def test_register_and_get() -> None:
     reg = ToolRegistry()
 
@@ -39,6 +40,61 @@ def test_duplicate_name_raises() -> None:
         raise AssertionError("重复注册应当抛 ValueError")
 
 
+def test_missing_tool_raises() -> None:
+    reg = ToolRegistry()
+    try:
+        reg.get("not_exist")
+    except KeyError as e:
+        assert "未注册" in str(e)
+    else:
+        raise AssertionError("取不存在的工具应当抛 KeyError")
+
+
+def test_empty_registry() -> None:
+    reg = ToolRegistry()
+    assert len(reg) == 0
+    assert reg.list_tools() == []
+    assert reg.to_openai_schema() == []
+
+
+def test_custom_name() -> None:
+    reg = ToolRegistry()
+
+    @reg.tool(name="my_add", description="加法")
+    def add(a: int, b: int) -> int:
+        return a + b
+
+    assert "my_add" in [t.name for t in reg.list_tools()]
+    assert reg.get("my_add").func(2, 3) == 5
+
+
+def test_description_defaults_to_docstring() -> None:
+    reg = ToolRegistry()
+
+    @reg.tool()
+    def greet(name: str) -> str:
+        """打个招呼。"""
+        return f"hi {name}"
+
+    assert reg.get("greet").description == "打个招呼。"
+
+
+def test_list_tools_preserves_order() -> None:
+    reg = ToolRegistry()
+
+    @reg.tool()
+    def z_tool() -> None:
+        pass
+
+    @reg.tool()
+    def a_tool() -> None:
+        pass
+
+    # 注册顺序即返回顺序（不做字母排序）
+    assert [t.name for t in reg.list_tools()] == ["z_tool", "a_tool"]
+
+
+# ---------- Schema 推导 ----------
 def test_schema_generation() -> None:
     reg = ToolRegistry()
 
@@ -53,6 +109,41 @@ def test_schema_generation() -> None:
     assert params["required"] == ["name"]
 
 
+def test_schema_no_params() -> None:
+    reg = ToolRegistry()
+
+    @reg.tool()
+    def ping() -> str:
+        return "pong"
+
+    params = reg.get("ping").parameters
+    assert params["properties"] == {}
+    assert params["required"] == []
+
+
+def test_schema_float_and_bool() -> None:
+    reg = ToolRegistry()
+
+    @reg.tool()
+    def set_temp(celsius: float, enabled: bool) -> None:
+        pass
+
+    props = reg.get("set_temp").parameters["properties"]
+    assert props["celsius"]["type"] == "number"
+    assert props["enabled"]["type"] == "boolean"
+
+
+def test_schema_all_optional() -> None:
+    reg = ToolRegistry()
+
+    @reg.tool()
+    def maybe(a: int = 1, b: str = "x") -> None:
+        pass
+
+    assert reg.get("maybe").parameters["required"] == []
+
+
+# ---------- OpenAI 格式导出 ----------
 def test_openai_schema() -> None:
     reg = ToolRegistry()
 
@@ -63,20 +154,11 @@ def test_openai_schema() -> None:
     schema = reg.to_openai_schema()
     assert schema[0]["type"] == "function"
     assert schema[0]["function"]["name"] == "ping"
-
-
-def test_missing_tool_raises() -> None:
-    reg = ToolRegistry()
-    try:
-        reg.get("not_exist")
-    except KeyError as e:
-        assert "未注册" in str(e)
-    else:
-        raise AssertionError("取不存在的工具应当抛 KeyError")
+    assert schema[0]["function"]["description"] == "测试工具"
+    assert "parameters" in schema[0]["function"]
 
 
 if __name__ == "__main__":
-    # 不依赖 pytest，直接跑
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     passed = 0
     for t in tests:
