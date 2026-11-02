@@ -5,31 +5,82 @@
 from __future__ import annotations
 
 import json
+from dataclasses import asdict, dataclass, field
 from typing import Any
 
 from .types import Step, Trace
 
 
+def _step_to_dict(step: Step) -> dict[str, Any]:
+    return {
+        "index": step.index,
+        "thought": step.thought,
+        "calls": [
+            {"id": c.id, "name": c.name, "arguments": c.arguments}
+            for c in step.calls
+        ],
+        "results": [
+            {
+                "call_id": r.call_id,
+                "ok": r.ok,
+                "output": r.output,
+                "error": r.error,
+                "duration_ms": r.duration_ms,
+            }
+            for r in step.results
+        ],
+    }
+
+
+def trace_to_dict(trace: Trace) -> dict[str, Any]:
+    return {
+        "task": trace.task,
+        "steps": [_step_to_dict(s) for s in trace.steps],
+        "final_answer": trace.final_answer,
+        "total_tokens": trace.total_tokens,
+        "stop_reason": trace.stop_reason,
+        "step_count": len(trace.steps),
+        "tool_call_count": sum(len(s.calls) for s in trace.steps),
+    }
+
+
+def trace_to_json(trace: Trace, *, indent: int = 2) -> str:
+    return json.dumps(trace_to_dict(trace), ensure_ascii=False, indent=indent)
+
+
+def trace_summary(trace: Trace) -> str:
+    """一行人类可读摘要，适合打日志。"""
+    parts = [
+        f"task={trace.task[:30]!r}",
+        f"steps={len(trace.steps)}",
+        f"tools={sum(len(s.calls) for s in trace.steps)}",
+        f"stop={trace.stop_reason or 'unknown'}",
+    ]
+    return " | ".join(parts)
+
+
+@dataclass
 class Tracer:
-    """执行追踪器。
+    """执行追踪器：边跑边记，最后可导出 JSON。"""
 
-    TODO(11-07): 实现：
-      - start_step() / end_step()
-      - record_call() / record_result()
-      - to_json()：完整 trace 序列化
-      - summary()：人类可读的单行摘要（用于日志）
-    """
+    task: str
+    steps: list[Step] = field(default_factory=list)
+    _open: Step | None = None
 
-    def __init__(self, task: str) -> None:
-        self.trace = Trace(task=task)
+    def start_step(self, index: int, thought: str = "") -> Step:
+        self._open = Step(index=index, thought=thought)
+        return self._open
 
-    def add_step(self, step: Step) -> None:
-        self.trace.steps.append(step)
+    def end_step(self) -> Step | None:
+        if self._open is not None:
+            self.steps.append(self._open)
+            self._open = None
+        return self.steps[-1] if self.steps else None
 
-    def to_json(self, *, indent: int = 2) -> str:
-        """序列化成 JSON。"""
-        return json.dumps(self._to_dict(), ensure_ascii=False, indent=indent)
-
-    def _to_dict(self) -> dict[str, Any]:
-        # TODO(11-07): 完整实现 steps / results 的序列化
-        return {"task": self.trace.task, "steps": [], "final_answer": self.trace.final_answer}
+    def to_trace(self, *, final_answer: str = "", stop_reason: str = "") -> Trace:
+        return Trace(
+            task=self.task,
+            steps=list(self.steps),
+            final_answer=final_answer,
+            stop_reason=stop_reason,
+        )
