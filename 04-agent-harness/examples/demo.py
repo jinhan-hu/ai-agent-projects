@@ -1,4 +1,4 @@
-"""端到端 demo：让 Agent 用工具完成一个多步任务。
+﻿"""端到端 demo：让 Agent 用工具完成一个多步任务。
 
 运行
 ----
@@ -8,7 +8,7 @@
 真实模型需要的环境变量：
     LLM_BASE_URL   例如 https://api.deepseek.com
     LLM_API_KEY    sk-...
-    LLM_MODEL      例如 deepseek-chat
+    LLM_MODEL      例如 deepseek-flash
 """
 
 import os
@@ -85,3 +85,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
