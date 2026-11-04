@@ -1,4 +1,4 @@
-# 04 · Mini Agent Harness
+﻿# 04 · Mini Agent Harness
 
 从零实现的**最小 Agent 执行框架**，纯 Python 标准库，**零第三方依赖**。
 
@@ -88,9 +88,10 @@ RAG 解决"模型不知道"的问题，Agent 要解决"模型能不能动手"。
 git clone https://github.com/jinhan-hu/ai-agent-projects
 cd ai-agent-projects/04-agent-harness
 
-python tests/run_all.py        # 56 个测试，约 1 秒
-python examples/demo.py        # 离线端到端演示（无需 API Key）
-python examples/demo.py --real # 接真实模型
+python tests/run_all.py                  # 56 个测试，约 1 秒
+python examples/demo.py                  # 单步演示（离线）
+python examples/demo_multistep.py        # 多步演示（离线）
+python examples/demo_multistep.py --real # 接真实模型
 ```
 
 **接真实模型**（以 DeepSeek 为例）：
@@ -98,27 +99,33 @@ python examples/demo.py --real # 接真实模型
 ```bash
 export LLM_BASE_URL=https://api.deepseek.com
 export LLM_API_KEY=sk-xxxxxxxx
-export LLM_MODEL=deepseek-chat
-python examples/demo.py --real
+export LLM_MODEL=deepseek-flash
+python examples/demo_multistep.py --real
 ```
 
-### 离线 demo 的实际输出
+> 其他 OpenAI 兼容服务同理，例如阿里百炼：
+> `LLM_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode`
+
+### 真实模型实测输出（deepseek-flash）
+
+任务：**算数 → 写文件 → 读回确认**
 
 ```
-[离线演示] 使用 MockLLM，无需网络
+[真实模型] https://api.deepseek.com / deepseek-flash
 
-已注册工具：
-  - calculator: 计算数学表达式
-  - read_file: 读取文本文件
-
-用户任务：帮我算一下 (120 + 80) * 3 等于多少
-------------------------------------------------------------
     step 0: 调用 [calculator] -> 1/1 成功
-------------------------------------------------------------
-最终答案：(120 + 80) × 3 = 600
-停止原因：converged
-摘要：task='帮我算一下 (120 + 80) * 3 等于多少' | steps=1 | tools=1 | stop=converged
+    step 1: 调用 [write_file] -> 1/1 成功
+    step 2: 调用 [read_file]  -> 1/1 成功
+
+最终答案：三件事已按顺序完成：
+1. 计算：(120 + 80) * 3 = 200 * 3 = 600
+2. 写入：已将 600 写入 _demo_output/result.txt
+3. 读回确认：文件内容为 600，与计算结果一致
+
+停止原因：converged | 步数：3 | 工具调用：3
 ```
+
+**模型自主决定「下一步调哪个工具」，中间没有任何硬编码流程**——这是 Agent 与固定 pipeline 的本质区别。
 
 ## 目录结构
 
@@ -159,3 +166,4 @@ python examples/demo.py --real
 - [ ] `eval` 接入真实模型，跑切分策略 / Agent 策略的对比实验
 - [ ] `memory` 加向量检索，做长期记忆
 - [ ] 多 Agent 协作（subagent 调度）
+
