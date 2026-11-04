@@ -1,8 +1,13 @@
-﻿# 04 · Mini Agent Harness
+# 04 · Mini Agent Harness
 
 从零实现的**最小 Agent 执行框架**，纯 Python 标准库，**零第三方依赖**。
 
 **56 个单元测试全部通过**，全流程可在无 API Key 的情况下离线运行。
+
+> ### 📹 [看 17 秒 Demo 视频](https://github.com/jinhan-hu/ai-agent-projects/releases/download/v0.1.0-agent-harness/agent-harness-demo.mp4)
+>
+> 真实模型（deepseek-flash）自主完成「算数 → 写文件 → 读回确认」三步任务，
+> 中间没有任何硬编码流程。｜ [Release 页面](https://github.com/jinhan-hu/ai-agent-projects/releases/tag/v0.1.0-agent-harness)
 
 ## 为什么写这个
 
