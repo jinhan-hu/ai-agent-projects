@@ -34,6 +34,10 @@
 - ★ [03-decoder/](./03-decoder/) — 高性能数据还原工具（并行穷举 + 流式解析）
 - ★ [04-agent-harness/](./04-agent-harness/) — 从零实现的 Agent 执行框架（工具注册 / Loop / 沙箱 / 记忆 / 重试 / 追踪 / 评测）
 
+## 技术博客
+
+- [Agent 为什么停不下来？——从零实现 Agent Loop 的终止设计](./blog/01-agent-loop-termination.md)
+
 ---
 
 ## 说明
