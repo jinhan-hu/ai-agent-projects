@@ -25,6 +25,13 @@ class LLMClient(Protocol):
         ...
 
 
+# ★ 软着陆时必须加的约束：不许把失败说成成功
+_NO_LIE = (
+    "如果因为权限、错误或信息不足导致任务未完成，"
+    "请如实说明「未能完成」及原因，不要假设任何未实际执行成功的操作。"
+)
+
+
 def _signature(calls: list[ToolCall]) -> tuple:
     """把一组工具调用压成可比较的签名，用于循环检测。"""
     return tuple(sorted((c.name, tuple(sorted(c.arguments.items()))) for c in calls))
@@ -84,7 +91,7 @@ class AgentLoop:
                 trace.stop_reason = "loop_detected"
                 trace.final_answer = self._soft_landing(
                     messages,
-                    hint="你已多次重复相同的工具调用，请不要再调用工具，直接基于现有信息给出最终答案。",
+                    hint="你已多次重复相同的工具调用，请不要再调用工具，直接基于现有信息给出最终答案。" + _NO_LIE,
                 )
                 return trace
 
@@ -105,7 +112,7 @@ class AgentLoop:
         trace.stop_reason = "max_steps"
         trace.final_answer = self._soft_landing(
             messages,
-            hint="已达到工具调用步数上限，请不要再调用工具，直接基于现有信息给出最终答案。",
+            hint="已达到工具调用步数上限，请不要再调用工具，直接基于现有信息给出最终答案。" + _NO_LIE,
         )
         return trace
 
@@ -125,4 +132,5 @@ class AgentLoop:
         names = ", ".join(c.name for c in step.calls)
         oks = sum(1 for r in step.results if r.ok)
         print(f"    step {step.index}: 调用 [{names}] -> {oks}/{len(step.results)} 成功")
+
 
