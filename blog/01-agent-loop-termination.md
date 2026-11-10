@@ -223,3 +223,6 @@ Agent Loop 的骨架只有三行：**调模型 → 看要不要用工具 → 把
 **代码实现**：[mini-agent-harness](https://github.com/jinhan-hu/ai-agent-projects/tree/main/04-agent-harness)（56 个测试，零第三方依赖）
 
 **Demo**：[17 秒真机演示](https://github.com/jinhan-hu/ai-agent-projects/releases/download/v0.1.0-agent-harness/agent-harness-demo.mp4)——真实模型自主完成三步任务
+
+**下一篇**：[RAG 混合检索：为什么纯向量不够](./02-hybrid-retrieval.md)
+
