@@ -192,3 +192,5 @@ $$
 **相关代码**：[mini-agent-harness](https://github.com/jinhan-hu/ai-agent-projects/tree/main/04-agent-harness)
 
 **上一篇**：[Agent 为什么停不下来？——从零实现 Agent Loop 的终止设计](./01-agent-loop-termination.md)
+
+**下一篇**：[给 Boss 装一个 LLM：延迟、公平性与成本的三角](./03-llm-boss-design.md)
