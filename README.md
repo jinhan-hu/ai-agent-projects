@@ -44,6 +44,7 @@
 - [Agent 为什么停不下来？——从零实现 Agent Loop 的终止设计](./blog/01-agent-loop-termination.md)
 - [RAG 混合检索：为什么纯向量不够](./blog/02-hybrid-retrieval.md)
 - [给 Boss 装一个 LLM：延迟、公平性与成本的三角](./blog/03-llm-boss-design.md)
+- [多智能体路由：一份可运行的最小实现](./blog/04-multi-agent-router.md)
 
 ---
 
