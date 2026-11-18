@@ -1,10 +1,15 @@
 """四个专家 Agent。
 
-共同骨架（ExpertBase）体现了一件事：**路由之后，专家的上下文是干净的**——
-安装专家只拿到安装类的知识库片段，不会混进故障排查的内容。
-这是路由相比"单体 Agent 全包"的核心收益。
+两种执行模式（★ 这是本项目一个重要的兼容设计）：
 
-新增一个类型只需要：继承 ExpertBase → 写 persona 和 keywords → 注册到 EXPERTS。
+    ① 工具模式（默认）：把 kb_search / ask_user 交给模型，由它自主决定
+       调不调、调几次 —— 这是「Agent」该有的样子。
+    ② 固定模式（回退）：直接调 kb.search() 再生成 —— 当 LLM 不支持
+       工具调用时自动降级，保证在任意模型上都能跑。
+
+为什么保留两种：
+    不是"为了兼容而兼容"。很多自建模型/旧端点不支持 function calling，
+    一个会直接崩的框架没有生产价值。**优雅降级**本身就是工程要求。
 """
 from __future__ import annotations
 
@@ -14,6 +19,8 @@ from dataclasses import dataclass
 from .knowledge import KnowledgeBase
 from .llm import LLM
 from .state import ROUTE_LABELS, TicketState
+from .tool_loop import build_tool_messages, run_tool_loop
+from .tools import ToolRegistry, make_ask_user_tool, make_kb_search_tool
 
 
 @dataclass
@@ -25,7 +32,7 @@ class ExpertConfig:
 
 
 class ExpertBase:
-    """专家 Agent 基类：检索 → 拼上下文 → 生成 → 抽引用。"""
+    """专家 Agent 基类。"""
 
     config: ExpertConfig
 
@@ -33,64 +40,101 @@ class ExpertBase:
         self.kb = kb
 
     # ---------- 子类可覆盖 ----------
-    def build_system(self) -> str:
+    def build_system(self, use_tools: bool = False) -> str:
+        tool_rule = (
+            "【工具使用】\n"
+            "你可以调用 kb_search 检索产品资料。"
+            "**在回答任何涉及产品功能、参数、报错、步骤的问题之前，必须先调用它**。\n"
+            "如果缺少关键信息无法判断，可以调用 ask_user 向用户提问，"
+            "但提问后仍要基于已有信息给出初步建议。\n"
+            if use_tools
+            else ""
+        )
         return (
             f"{self.config.persona}\n\n"
-            f"【要求】\n"
-            f"1. 只根据下面提供的【资料】回答；资料里没有的信息，直接说"
+            f"{tool_rule}"
+            f"【回答要求】\n"
+            f"1. 只根据检索到的资料回答；资料里没有的信息，直接说"
             f"「资料中没有相关内容，建议转人工」，不要编造。\n"
             f"2. 回答要具体可执行：给出步骤、参数或判断依据。\n"
             f"3. 每引用一条资料，在句末用 [来源: xxx] 标注。\n"
             f"4. {self.config.task}\n"
         )
 
-    def retrieve(self, state: TicketState) -> list:
-        # ① 先按本类型检索（强约束）
-        hits = self.kb.search(state.ticket.text, k=3, route=self.config.route)
-        if hits:
-            return hits
-        # ② 同类没命中，放宽到全库——但要标记出来，让校验节点知道
-        return self.kb.search(state.ticket.text, k=3, route=None)
-
-    # ---------- 主流程 ----------
-    def run(self, state: TicketState, llm: LLM) -> dict:
-        hits = self.retrieve(state)
-
-        if hits:
-            blocks = [
-                f"[{doc.source or doc.doc_id}] {doc.title}\n{doc.text}"
-                for doc, _ in hits
-            ]
-            material = "\n\n".join(blocks)
-        else:
-            material = "（未检索到相关资料）"
-
-        context_parts = []
+    def build_user(self, state: TicketState, material: str = "") -> str:
+        parts = [f"【工单原文】\n{state.ticket.text}"]
         if state.memory_context:
-            context_parts.append(f"【客户历史档案】\n{state.memory_context}")
+            parts.append(f"【客户历史档案】\n{state.memory_context}")
         if state.history:
-            context_parts.append(f"【本会话前几轮】\n{_render_history(state.history)}")
-
-        user_parts = [f"【工单原文】\n{state.ticket.text}"]
-        if context_parts:
-            user_parts.append("\n".join(context_parts))
-        user_parts.append(f"【资料】\n{material}")
+            parts.append(f"【本会话前几轮】\n{_render_history(state.history)}")
+        if material:
+            parts.append(f"【资料】\n{material}")
         if state.need_clarify:
-            user_parts.append(
+            parts.append(
                 "【注意】路由器认为信息不足，请在回答开头先说明需要用户补充什么，"
                 "再给出目前能给的通用建议。"
             )
+        return "\n\n".join(parts)
 
+    def retrieve(self, state: TicketState) -> list:
+        hits = self.kb.search(state.ticket.text, k=3, route=self.config.route)
+        if hits:
+            return hits
+        return self.kb.search(state.ticket.text, k=3, route=None)
+
+    def make_registry(self) -> ToolRegistry:
+        """装配本专家的工具集。"""
+        reg = ToolRegistry()
+        reg.register(make_kb_search_tool(self.kb, default_route=self.config.route))
+        reg.register(make_ask_user_tool())
+        return reg
+
+    # ---------- 主流程 ----------
+    def run(self, state: TicketState, llm: LLM, enable_tools: bool = True) -> dict:
+        """执行专家。能走工具就走工具，否则回退固定模式。"""
+        can_use_tools = enable_tools and callable(getattr(llm, "chat_with_tools", None))
+        if can_use_tools:
+            return self._run_with_tools(state, llm)
+        return self._run_fixed(state, llm)
+
+    # ---------- 模式 ①：工具调用 ----------
+    def _run_with_tools(self, state: TicketState, llm) -> dict:
+        registry = self.make_registry()
+        messages = build_tool_messages(
+            self.build_system(use_tools=True), self.build_user(state)
+        )
+        result = run_tool_loop(llm, messages, registry, max_rounds=4)
+        return {
+            "answer": result.answer.strip(),
+            "citations": _extract_citations(result.answer),
+            "next_steps": _extract_next_steps(result.answer),
+            # ★ 新增：工具使用统计（供 trace / 评估使用）
+            "tool_stats": result.stats(),
+            "asked_user": result.asked_user,
+        }
+
+    # ---------- 模式 ②：固定检索（回退） ----------
+    def _run_fixed(self, state: TicketState, llm) -> dict:
+        hits = self.retrieve(state)
+        material = (
+            "\n\n".join(
+                f"[{doc.source or doc.doc_id}] {doc.title}\n{doc.text}" for doc, _ in hits
+            )
+            if hits
+            else "（未检索到相关资料）"
+        )
         messages = [
-            {"role": "system", "content": self.build_system()},
-            {"role": "user", "content": "\n\n".join(user_parts)},
+            {"role": "system", "content": self.build_system(use_tools=False)},
+            {"role": "user", "content": self.build_user(state, material)},
         ]
         answer = llm.chat(messages, temperature=0.2).strip()
-
-        citations = _extract_citations(answer, hits)
-        next_steps = _extract_next_steps(answer)
-
-        return {"answer": answer, "citations": citations, "next_steps": next_steps}
+        return {
+            "answer": answer,
+            "citations": _extract_citations(answer),
+            "next_steps": _extract_next_steps(answer),
+            "tool_stats": {"rounds": 0, "tool_calls": 0, "used_tools": False, "mode": "fixed"},
+            "asked_user": [],
+        }
 
 
 # ---------- 四个专家 ----------
@@ -135,6 +179,12 @@ class FallbackExpert(ExpertBase):
         # 兜底专家不做定向检索：它的问题就是"不知道属于哪类"
         return []
 
+    def make_registry(self) -> ToolRegistry:
+        """兜底专家不用 kb_search（不知道查哪个类），只保留 ask_user。"""
+        reg = ToolRegistry()
+        reg.register(make_ask_user_tool())
+        return reg
+
 
 EXPERTS: dict[str, type[ExpertBase]] = {
     "install": InstallExpert,
@@ -155,13 +205,12 @@ def _render_history(history: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def _extract_citations(answer: str, hits: list) -> list[str]:
+def _extract_citations(answer: str) -> list[str]:
     """只从**回答正文**里抽 [来源: xxx]。
 
     ★ 刻意不回落到「检索到的文档」：
       模型检索到了却没在回答里标注出处，本身就是缺陷——
       如果这里帮它兜底，「没有引用」这个信号就会被掩盖，校验也就失效了。
-      检索到的出处单独通过 `retrieved` 传递（见 orchestrator 的 trace）。
     """
     found = re.findall(r"\[来源[:：]\s*([^\]]+)\]", answer)
     return sorted({f.strip() for f in found if f.strip()})
