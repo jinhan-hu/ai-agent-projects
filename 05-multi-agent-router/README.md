@@ -185,3 +185,9 @@ python tests/run_all.py
 | 换持久化 | 实现 `Store` 协议（SQLite / Redis） |
 | 用 LangGraph 重写 | 图结构直接映射，`nodes` 和条件边函数可原样复用 |
 | 接入 MCP 工具 | 给 `ExpertBase.retrieve()` 换成 MCP 客户端调用 |
+
+---
+
+## 相关文章
+
+- [多智能体路由：一份可运行的最小实现](../blog/04-multi-agent-router.md)
