@@ -22,6 +22,7 @@ from dataclasses import dataclass
 from .experts import EXPERTS, ExpertBase
 from .graph import Graph
 from .knowledge import Doc, KnowledgeBase
+from .knowledge_data import DOCS as SAMPLE_DOCS
 from .llm import LLM
 from .memory import Memory
 from .router import next_after_route, route_node
@@ -32,6 +33,8 @@ from .state import ROUTE_LABELS, Ticket, TicketState
 class RouterConfig:
     max_steps: int = 20
     verify_min_citations: int = 1     # 至少几条引用才算通过
+    # ★ 是否让专家走工具调用循环（LLM 不支持时自动回退）
+    enable_tools: bool = True
 
 
 class RouterOrchestrator:
@@ -89,13 +92,12 @@ class RouterOrchestrator:
 
     def _make_expert_node(self, route: str):
         expert = self.experts[route]
-        label = ROUTE_LABELS.get(route, route)
 
         def node(state: TicketState) -> dict:
-            # 兜底专家不需要路由理由之外的信息
-            out = expert.run(state, self.llm)
+            out = expert.run(
+                state, self.llm, enable_tools=self.config.enable_tools
+            )
             out.setdefault("error", state.error)
-            _ = label  # 保留 label 便于调试打印
             return out
 
         return node
@@ -161,27 +163,6 @@ class RouterOrchestrator:
 
 # ---------- 示例知识库 ----------
 
-SAMPLE_DOCS: list[Doc] = [
-    Doc("KB-01", "安装前置条件", "需要 64 位系统，内存至少 8 GB，磁盘剩余 20 GB。"
-        "Windows 需先安装 VC++ 运行库；Linux 需 glibc 2.28 以上。", "install", "安装手册 §1"),
-    Doc("KB-02", "许可证激活步骤", "在「设置 → 授权 → 输入激活码」处填入 32 位激活码。"
-        "离线环境需先用另一台联网机器生成请求文件，再导入许可证文件。", "install", "安装手册 §4"),
-    Doc("KB-03", "端口占用导致安装失败", "安装前请确认 8080 端口空闲。"
-        "若被占用，可在安装器里改用 9000 端口，或先停掉占用进程。", "install", "安装手册 §2"),
-    Doc("KB-04", "报表模块入口", "报表在左侧导航「分析 → 报表中心」。"
-        "「按日汇总」需要选择日期区间后点右上角「生成」。", "usage", "用户手册 §3.2"),
-    Doc("KB-05", "告警阈值参数说明", "阈值支持绝对值和百分比两种模式。"
-        "百分比模式以近 7 天均值为基准，超过阈值持续 5 分钟才触发。", "usage", "用户手册 §5.1"),
-    Doc("KB-06", "错误码 E1024", "E1024 表示许可证校验失败。"
-        "常见原因：系统时间不准确、激活码与设备指纹不匹配、许可证已过期。"
-        "排查顺序：先对齐系统时间，再在授权页看设备指纹是否变化。", "troubleshoot", "故障手册 §2"),
-    Doc("KB-07", "启动报错 ModuleNotFoundError", "通常是因为运行环境缺少依赖或虚拟环境未激活。"
-        "先执行 pip install -r requirements.txt，确认 python -V 与文档要求一致。", "troubleshoot", "故障手册 §4"),
-    Doc("KB-08", "页面一直转圈打不开", "先看后端服务是否存活（curl 健康检查接口）。"
-        "若健康检查超时，多为数据库连接池耗尽；可重启服务并检查慢查询日志。", "troubleshoot", "故障手册 §6"),
-    Doc("KB-09", "常见问题总览", "安装类见安装手册，使用类见用户手册，"
-        "故障类见故障手册。资料未覆盖的问题建议转人工。", "fallback", "帮助中心首页"),
-]
 
 
 def default_knowledge_base() -> KnowledgeBase:
