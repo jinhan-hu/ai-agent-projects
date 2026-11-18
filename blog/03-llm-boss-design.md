@@ -244,3 +244,5 @@ $$100\text{ 万玩家} \times 10\text{ 场/人} \times 0.4\text{ 元} = \textbf{
 
 - [Agent 为什么停不下来？——从零实现 Agent Loop 的终止设计](./01-agent-loop-termination.md)
 - [RAG 混合检索：为什么纯向量不够](./02-hybrid-retrieval.md)
+
+**下一篇**：[多智能体路由：一份可运行的最小实现](./04-multi-agent-router.md)
