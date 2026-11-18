@@ -66,6 +66,11 @@ class TicketState:
     citations: list[str] = field(default_factory=list)
     next_steps: list[str] = field(default_factory=list)
 
+    # ★ 工具使用统计（专家走了工具循环还是固定检索）
+    tool_stats: dict = field(default_factory=dict)
+    # ★ 模型主动向用户提出的问题（ask_user 工具）
+    asked_user: list[str] = field(default_factory=list)
+
     # 质量校验
     verified: bool = False
     verify_note: str = ""
