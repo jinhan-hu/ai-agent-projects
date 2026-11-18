@@ -162,11 +162,11 @@ def test_knowledge() -> None:
     hits = kb.search("E1024 报错", k=3, route="troubleshoot")
     check("按类检索命中故障类", len(hits) > 0 and all(d.route == "troubleshoot" for d, _ in hits),
           str([(d.doc_id, s) for d, s in hits]))
-    check("E1024 排在首位", hits and hits[0][0].doc_id == "KB-06",
+    check("E1024 排在首位", hits and hits[0][0].doc_id == "KB-T01",
           str(hits[0][0].doc_id if hits else None))
 
     hits2 = kb.search("安装前置条件 内存", k=2, route="install")
-    check("安装类检索命中 KB-01", hits2 and hits2[0][0].doc_id == "KB-01",
+    check("安装类检索命中 KB-I01", hits2 and hits2[0][0].doc_id == "KB-I01",
           str(hits2[0][0].doc_id if hits2 else None))
 
     check("无关查询返回空", kb.search("zzzzzz", k=3) == [])
