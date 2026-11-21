@@ -1,4 +1,4 @@
-"""一次性跑完全部测试。
+﻿"""一次性跑完全部测试。
 
     python tests/test_all.py
 """
@@ -9,7 +9,7 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SUITES = ["run_all.py", "test_tools_and_eval.py"]
+SUITES = ["run_all.py", "test_tools_and_eval.py", "test_retrieval.py"]
 
 
 def main() -> int:
@@ -53,3 +53,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
