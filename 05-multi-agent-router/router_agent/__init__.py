@@ -33,6 +33,14 @@ from .orchestrator import (
     RouterOrchestrator,
     default_knowledge_base,
 )
+from .retrieval import (
+    BM25,
+    HybridRetriever,
+    Reranker,
+    VectorIndex,
+    rrf_fuse,
+    tokenize,
+)
 from .router import CONFIDENCE_THRESHOLD, next_after_route, route_node
 from .state import ROUTE_LABELS, ROUTES, Ticket, TicketState
 from .tool_loop import LoopResult, ToolLLM, build_tool_messages, run_tool_loop
@@ -84,6 +92,13 @@ __all__ = [
     "run_tool_loop",
     "LoopResult",
     "build_tool_messages",
+    # 检索
+    "BM25",
+    "VectorIndex",
+    "HybridRetriever",
+    "Reranker",
+    "rrf_fuse",
+    "tokenize",
     # 记忆
     "Memory",
     "InMemoryStore",
@@ -96,4 +111,4 @@ __all__ = [
     "format_table",
 ]
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
