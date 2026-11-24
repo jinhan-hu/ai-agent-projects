@@ -8,6 +8,11 @@
     - 检索效果怎么量化（Recall@k / MRR / 跨类污染率）
 """
 
+from .biz_tools import (
+    BizData,
+    IdempotencyStore,
+    register_biz_tools,
+)
 from .eval import (
     EvalCase,
     EvalReport,
@@ -92,6 +97,10 @@ __all__ = [
     "run_tool_loop",
     "LoopResult",
     "build_tool_messages",
+    # 业务工具
+    "BizData",
+    "IdempotencyStore",
+    "register_biz_tools",
     # 检索
     "BM25",
     "VectorIndex",
@@ -111,4 +120,4 @@ __all__ = [
     "format_table",
 ]
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
