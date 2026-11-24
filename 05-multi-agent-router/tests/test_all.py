@@ -9,7 +9,7 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SUITES = ["run_all.py", "test_tools_and_eval.py", "test_retrieval.py"]
+SUITES = ["run_all.py", "test_tools_and_eval.py", "test_retrieval.py", "test_biz_tools.py"]
 
 
 def main() -> int:
