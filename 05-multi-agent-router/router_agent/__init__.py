@@ -32,6 +32,12 @@ from .llm import (
     OpenAICompatibleClient,
     extract_json,
 )
+from .mcp import (
+    MCPClient,
+    MCPError,
+    register_mcp_tools,
+    register_mcp_tools_silently,
+)
 from .memory import InMemoryStore, Memory
 from .orchestrator import (
     RouterConfig,
@@ -108,6 +114,11 @@ __all__ = [
     "Reranker",
     "rrf_fuse",
     "tokenize",
+    # MCP
+    "MCPClient",
+    "MCPError",
+    "register_mcp_tools",
+    "register_mcp_tools_silently",
     # 记忆
     "Memory",
     "InMemoryStore",
@@ -120,4 +131,4 @@ __all__ = [
     "format_table",
 ]
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
