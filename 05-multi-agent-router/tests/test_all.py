@@ -9,7 +9,7 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SUITES = ["run_all.py", "test_tools_and_eval.py", "test_retrieval.py", "test_biz_tools.py"]
+SUITES = ["run_all.py", "test_tools_and_eval.py", "test_retrieval.py", "test_biz_tools.py", "test_mcp.py"]
 
 
 def main() -> int:
@@ -31,14 +31,16 @@ def main() -> int:
         for line in out.splitlines():
             if line.startswith("通过 ") or line.startswith("  - "):
                 print("  " + line)
-        if "通过 " in out:
-            frag = out.split("通过 ", 1)[1].split("\n", 1)[0]
-            try:
-                p, t = frag.split("/")
-                total_pass += int(p.strip())
-                total_fail += int(t.strip()) - int(p.strip())
-            except ValueError:
-                pass
+        # ★ 用正则找「通过 X / Y」这一行（取最后一个，避免被正文里的字样干扰）
+        import re as _re
+        hits = _re.findall(r"通过\s*(\d+)\s*/\s*(\d+)", out)
+        if hits:
+            p, t = int(hits[-1][0]), int(hits[-1][1])
+            total_pass += p
+            total_fail += t - p
+        else:
+            print(f"  ⚠ 未能从 {suite} 的输出里解析「通过 X / Y」")
+            failed_suites.append(suite)
         if proc.returncode != 0:
             failed_suites.append(suite)
             print(out[-1500:])
@@ -53,4 +55,5 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
 
