@@ -264,6 +264,54 @@ class IdempotencyStore:
 
 ---
 
+## MCP 接入：零依赖手写，验证「上层零改动」
+
+```bash
+python examples/demo_mcp.py
+```
+
+### 最小闭环只有三段
+
+| 阶段 | 请求 | 响应 |
+| --- | --- | --- |
+| 握手 | `initialize` | `{protocolVersion, capabilities, serverInfo}` |
+| 列工具 | `tools/list` | `{tools:[{name, description, inputSchema}]}` |
+| 调工具 | `tools/call` | `{content:[{type:"text", text}], isError}` |
+
+**传输：stdio，每行一条 JSON-RPC 2.0**（不是 Content-Length 头）。
+**零依赖**：只用 `subprocess` + `json`，没有引入 `mcp` SDK。
+
+### ★ 这批要验证的那句话
+
+README 一直写着「接入 MCP 只改 `ToolRegistry` 的两个方法」。**现在有代码证明了**：
+
+```python
+# 数据来自 tools/list，执行走 tools/call
+names = register_mcp_tools(registry, client)
+```
+
+`tests/test_mcp.py` 里有一组断言直接对比：
+
+| 断言 | 结果 |
+| --- | --- |
+| 轮数一致 | ✅ |
+| 调用序列一致 | ✅ |
+| 停止原因一致 | ✅ |
+| `used_tools` 一致 | ✅ |
+| **答案一致**（由模型脚本决定，与工具来源无关） | ✅ |
+| ★ **两边工具返回内容确实不同**（一个含"本地"，一个不含） | ✅ |
+
+**★ 上层的 `tool_loop` / `experts` 一行都不用改 —— 这是实测的，不是声明的。**
+
+### ⚠️ 诚实的边界
+
+**本项目只实现 `Tools` 原语。`Resources` / `Prompts` 没有消费接口。**
+
+所以正确的说法是「**实现了 MCP 的 Tools 通道**」，不是「完整支持 MCP」。
+（这也是为什么 demo 会打印 `capabilities: {'tools': {}}` —— 让边界可见。）
+
+---
+
 ## 关于「和实习项目的关系」
 
 作者 2026 年在杭州某 AI 公司实习时，做的是**真实业务的多智能体销售系统**（LangGraph 编排 + 指挥官路由 + 三个专家 + RAG + 两级记忆）。
@@ -314,7 +362,7 @@ class IdempotencyStore:
 
 ## 测试覆盖什么
 
-**194 个测试，全部离线**，重点在**编排与检索逻辑**而不是模型质量：
+**224 个测试，全部离线**，重点在**编排与检索逻辑**而不是模型质量：
 
 | 组 | 覆盖 |
 | --- | --- |
@@ -331,7 +379,7 @@ class IdempotencyStore:
 
 ```bash
 python tests/test_all.py
-# 总计通过 194 / 194
+# 总计通过 224 / 224
 ```
 
 ---
@@ -346,7 +394,7 @@ python tests/test_all.py
 | **加评审判定** | `verify` 里接第二个模型（成本翻倍，按需开） |
 | 换持久化 | 实现 `Store` 协议（SQLite / Redis） |
 | 用 LangGraph 重写 | 图结构直接映射，`nodes` 和条件边函数可原样复用 |
-| 接入 MCP 工具 | ★ **只改 `ToolRegistry.to_schema()` 和 `execute()`** 两个方法 |
+| ★ **接入 MCP 工具** | ★ **已实现**（v0.5.0）——见 [`mcp_demo/`](./mcp_demo/)。零依赖手写 JSON-RPC |
 | 扩充知识库 | `knowledge_gen.py` 里改 `MODULES` 或 `ANCHORS`，自动生成文档 + 标注 |
 
 ---
