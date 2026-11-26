@@ -165,6 +165,9 @@ CONFIDENCE_THRESHOLD = 0.7
 # 基础演示：路由 → 专家 → 校验 → 记忆（离线，无需 API Key）
 python examples/demo.py
 
+# ★ 自主性演示：专家决定调 0/1/2 次工具 + 死循环防护
+python examples/demo_agent.py
+
 # ★ 工具集演示：读 / 写（幂等）/ 高风险，三种性质的差别
 python examples/demo_tools.py
 
