@@ -34,7 +34,7 @@
 - ★ [02-asr-system/](./02-asr-system/) — 通话语音转写（faster-whisper INT8 + VAD + 多策略断句）
 - ★ [03-decoder/](./03-decoder/) — 高性能数据还原工具（并行穷举 + 流式解析）
 - ★ [04-agent-harness/](./04-agent-harness/) — 从零实现的 Agent 执行框架（工具注册 / Loop / 沙箱 / 记忆 / 重试 / 追踪 / 评测）
-- ★★ **[05-multi-agent-router/](./05-multi-agent-router/)** — **可运行的多智能体路由实现**（手写状态图 + 条件边 + 置信度兜底 + 独立校验节点 + 两级记忆，52 个离线测试）
+- ★★ **[05-multi-agent-router/](./05-multi-agent-router/)** — **可运行的多智能体路由实现**（手写状态图 + 工具调用循环 + BM25/混合检索 + 幂等工具 + **MCP 接入** + 检索消融实验，**224 个离线测试**）
 
 > **关于 01–03**：这三个目录是**脱敏后的架构说明**（公司代码不可开源），不含业务实现。
 > 想看**同架构的可运行代码**，请直接看 [05-multi-agent-router](./05-multi-agent-router/)——它用虚构场景把多智能体路由的架构重新实现了一遍。
